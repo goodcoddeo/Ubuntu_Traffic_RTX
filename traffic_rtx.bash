@@ -1,14 +1,28 @@
 #!/bin/bash
-IFACE="enp0s6"
 
-RX1=$(cat /proc/net/dev | grep $IFACE | awk '{print $2}')
-TX1=$(cat /proc/net/dev | grep $IFACE | awk '{print $10}')
-sleep 1
-RX2=$(cat /proc/net/dev | grep $IFACE | awk '{print $2}')
-TX2=$(cat /proc/net/dev | grep $IFACE | awk '{print $10}')
+# Default values
+IFACE=${1:-enp0s6}
+INTERVAL=${2:-1}
 
-RX_RATE=$((RX2 - RX1))
-TX_RATE=$((TX2 - TX1))
+# Function to read RX and TX bytes
+get_bytes() {
+    line=$(grep "$IFACE" /proc/net/dev | tr ':' ' ')
+    RX=$(echo "$line" | awk '{print $2}')
+    TX=$(echo "$line" | awk '{print $10}')
+    echo "$RX $TX"
+}
 
-echo "RX: $RX_RATE Bytes/s"
-echo "TX: $TX_RATE Bytes/s"
+# Read initial values
+read RX1 TX1 < <(get_bytes)
+sleep "$INTERVAL"
+read RX2 TX2 < <(get_bytes)
+
+# Calculate rates
+RX_RATE=$(( (RX2 - RX1) / INTERVAL ))
+TX_RATE=$(( (TX2 - TX1) / INTERVAL ))
+
+# Print results
+echo "Interface: $IFACE"
+echo "Interval: ${INTERVAL}s"
+echo "RX Rate: $RX_RATE Bytes/s"
+echo "TX Rate: $TX_RATE Bytes/s"
